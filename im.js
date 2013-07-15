@@ -11,15 +11,16 @@ function log(line){
 }
 
 // load or generate our crypto id
-var idfile = process.argv[3]||"./id.json";
+var idfile = process.argv[2]||"./id.json";
+var id;
 if(fs.existsSync(idfile))
 {
-  var id = require(idfile);
+  id = require(idfile);
   init();
 }else{
   tele.genkey(function(err, key){
     if(err) return cmds.quit(err);
-    var id = key;
+    id = key;
     rl.question('nickname? ', function(nick) {
       id.nick = nick;
       fs.writeFileSync(idfile, JSON.stringify(id, null, 4));
@@ -43,19 +44,34 @@ function init()
     if(err) process.exit(0);
   });  
 
-  im.listen("_im", function(operator, packet){
-    if(!streams[packet.from.hashname]) streams[packet.from.hashname] = packet.stream;
-    packet.stream.handler = incoming;
-  });
+  im.listen("_im", handshake);
 }
 
 var streams = {};
 function incoming(im, packet, callback)
 {
   callback();
-  packet.stream.send({}); // receipt ack
-  if(!packet.js.message) return;
-  log("["+packet.from.hashname.substr(0,4)+"]< "+packet.js.message);  
+  if(packet.js.message || packet.js.nick) packet.stream.send({}); // receipt ack, maybe have flag for stream to auto-ack?
+
+  if(packet.js.message) log("["+(packet.stream.nick||packet.from.hashname)+"] "+packet.js.message);
+  if(packet.js.nick) nickel(packet.from.hashname, packet.js.nick);
+}
+function handshake(im, packet, callback)
+{
+  if(callback) callback();
+  log("connected "+packet.js.nick+" ("+packet.from.hashname+")");
+  streams[packet.from.hashname] = packet.stream;
+  packet.stream.handler = incoming;
+  nickel(packet.from.hashname, packet.js.nick);
+  if(packet.js.seq == 0) packet.stream.send({nick:id.nick});
+  else packet.stream.send({});
+}
+
+// update nick and refresh prompt
+function nickel(hashname, nick)
+{
+  streams[hashname].nick = nick;
+  if(!to || to == hashname) cmds.to(hashname);
 }
 
 // our chat handler
@@ -68,7 +84,7 @@ rl.on('line', function(line) {
     else log("I don't know how to "+cmd);
   }else{
     if(!to) log("who are you talking to? /to hashname|nickname");
-    else to.send({message:line});
+    else streams[to].send({message:line});
   }
   rl.prompt();
 });
@@ -81,10 +97,15 @@ cmds.quit = function(err){
 cmds.whoami = function(){
   log("my hashname is "+ im.hashname);  
 }
+cmds.who = function(){
+  if(!to) return log("talking to nobody");
+  log("talking to "+streams[to].nick+" ("+streams[to].hashname+")");
+}
 cmds.to = function(hashname){
-  if(!streams[hashname]) to = streams[hashname] = im.stream(hashname, incoming).send({type:"_im"});
-  if(!to.nick) to.nick = to.hashname;
-  rl.setPrompt(id.nick+"->"+to.nick+"> ");
+  to = hashname;
+  if(!streams[to]) streams[to] = im.stream(hashname, handshake).send({type:"_im", nick:id.nick});
+  rl.setPrompt(id.nick+"->"+(streams[to].nick||to)+"> ");
+  rl.prompt();
 }
 cmds["42"] = function(){
   log("I hash, therefore I am.");
