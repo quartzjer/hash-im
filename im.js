@@ -48,6 +48,7 @@ function init()
 }
 
 var streams = {};
+var nicks = {};
 function incoming(im, packet, callback)
 {
   callback();
@@ -71,6 +72,7 @@ function handshake(im, packet, callback)
 function nickel(hashname, nick)
 {
   streams[hashname].nick = nick;
+  nicks[nick] = hashname;
   if(!to || to == hashname) cmds.to(hashname);
 }
 
@@ -99,11 +101,11 @@ cmds.whoami = function(){
 }
 cmds.who = function(){
   if(!to) return log("talking to nobody");
-  log("talking to "+streams[to].nick+" ("+streams[to].hashname+")");
+  log("talking to "+streams[to].nick+" ("+to+")");
 }
-cmds.to = function(hashname){
-  to = hashname;
-  if(!streams[to]) streams[to] = im.stream(hashname, handshake).send({type:"_im", nick:id.nick});
+cmds.to = function(targ){
+  to = nicks[targ] || targ;
+  if(!streams[to]) streams[to] = im.stream(to, handshake).send({type:"_im", nick:id.nick});
   rl.setPrompt(id.nick+"->"+(streams[to].nick||to)+"> ");
   rl.prompt();
 }
