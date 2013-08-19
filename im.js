@@ -36,7 +36,7 @@ function init()
   rl.prompt();
 
   var seeds = require("./seeds.json");
-  im = tele.hashname("im.telehash.org", id);
+  im = tele.hashname(id);
   seeds.forEach(im.addSeed);
 
   im.online(function(err){
