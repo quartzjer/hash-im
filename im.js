@@ -44,28 +44,26 @@ function init()
     if(err) process.exit(0);
   });  
 
-  im.listen("_im", handshake);
+  im.listen("im", handshake);
 }
 
 var streams = {};
 var nicks = {};
-function incoming(im, packet, callback)
+function incoming(err, stream, js)
 {
-  callback();
-  if(packet.js.message || packet.js.nick) packet.stream.send({}); // receipt ack, maybe have flag for stream to auto-ack?
+  if(js.message || js.nick) stream.send({}); // receipt ack, maybe have flag for stream to auto-ack?
 
-  if(packet.js.message) log("["+(packet.stream.nick||packet.from.hashname)+"] "+packet.js.message);
-  if(packet.js.nick) nickel(packet.from.hashname, packet.js.nick);
+  if(js.message) log("["+(stream.nick||stream.hashname)+"] "+js.message);
+  if(js.nick) nickel(stream.hashname, js.nick);
 }
-function handshake(im, packet, callback)
+function handshake(err, stream, js)
 {
-  if(callback) callback();
-  log("connected "+packet.js.nick+" ("+packet.from.hashname+")");
-  streams[packet.from.hashname] = packet.stream;
-  packet.stream.handler = incoming;
-  nickel(packet.from.hashname, packet.js.nick);
-  if(packet.js.seq == 0) packet.stream.send({nick:id.nick});
-  else packet.stream.send({});
+  log("connected "+js.nick+" ("+stream.hashname+")");
+  if(streams[stream.hashname] !== stream) stream.send({nick:id.nick});
+  streams[stream.hashname] = stream;
+  stream.handler = incoming;
+  nickel(stream.hashname, js.nick);
+  stream.send({});
 }
 
 // update nick and refresh prompt
@@ -105,7 +103,7 @@ cmds.who = function(){
 }
 cmds.to = function(targ){
   to = nicks[targ] || targ;
-  if(!streams[to]) streams[to] = im.stream(to, handshake).send({type:"_im", nick:id.nick});
+  if(!streams[to]) streams[to] = im.stream(to, "im", handshake).send({nick:id.nick});
   rl.setPrompt(id.nick+"->"+(streams[to].nick||to)+"> ");
   rl.prompt();
 }
