@@ -2,7 +2,7 @@
    "name": "hash-im",
    "version": "0.0.4",
    "dependencies": {
-   	  "telehash": "*"
+   	  "telehash": ">=0.0.55"
    },
   "licenses": [
   {
