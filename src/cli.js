@@ -35,8 +35,8 @@ CLI.prototype.createId = function(callback) {
 
       fs.writeFileSync(this.idFile, JSON.stringify(this.id, null, 4));
       callback();
-    });
-  });
+    }.bind(this));
+  }.bind(this));
 };
 
 CLI.prototype.connect = function() {
