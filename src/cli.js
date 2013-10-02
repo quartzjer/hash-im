@@ -95,15 +95,16 @@ CLI.prototype.execWhoami = function() {
 }
 
 CLI.prototype.execWho = function() {
-  var recipient;
+  var result, nickname;
 
   if (this.to) {
-    recipient = streams[to].nick + '(' + to + ')';
+    nickname = this.session.nicknameFor(this.to);
+    result = nickname ? (nickname + ' (' + this.to + ')') : this.to;
   } else {
-    recipient = 'nobody';
+    result = 'nobody';
   }
 
-  this.log('talking to ' + recipient);
+  this.log('talking to ' + result);
 }
 
 CLI.prototype.execTo = function(targ) {

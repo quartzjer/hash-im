@@ -81,3 +81,12 @@ IM.prototype.didReceiveLine = function(error, stream, js) {
 IM.prototype.getNickname = function() {
   return this.id.nick;
 };
+
+// Returns the nickname for a given hashname, but only for established lines.
+IM.prototype.nicknameFor = function(hashname) {
+  var line = this.lines[hashname];
+
+  if (typeof line !== 'undefined') {
+    return line.nickname;
+  }
+};
